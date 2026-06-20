@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "airgap-rag"
+version = "0.1.0"
+description = "Enterprise-grade, fully offline RAG over local PDF and DOCX corpora."
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "chromadb>=1.0,<2",
+    "docx2txt>=0.9,<1",
+    "langchain>=0.3.27,<0.4",
+    "langchain-chroma>=0.2.5,<0.3",
+    "langchain-community>=0.3.27,<0.4",
+    "langchain-huggingface>=0.3.1,<0.4",
+    "langchain-ollama>=0.3.6,<0.4",
+    "langchain-text-splitters>=0.3.9,<0.4",
+    "pymupdf>=1.26,<2",
+    "rank-bm25>=0.2.2,<0.3",
+    "sentence-transformers>=5.0,<6",
+    "streamlit>=1.46,<2",
+    "watchdog>=6,<7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4,<9",
+    "ruff>=0.12,<1",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
