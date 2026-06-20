@@ -33,10 +33,7 @@ def main() -> None:
     )
     command = [
         str(venv_python),
-        "-m",
-        "streamlit",
-        "run",
-        str(project_root / "app.py"),
+        str(project_root / "server.py"),
         *sys.argv[1:],
     ]
     os.execve(str(venv_python), command, environment)

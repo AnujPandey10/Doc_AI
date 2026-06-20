@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Document Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+
+<body class="dark-theme">
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="app-sidebar" id="appSidebar">
+            <div class="sidebar-header">
+                <div class="brand-logo">
+                    <h1>AI Document Assistant</h1>
+                </div>
+            </div>
+
+            <div class="sidebar-scroll-content">
+                <!-- Document Directory Setup -->
+                <section class="sidebar-section panel-glass">
+                    <h2 class="section-title">Document Sources</h2>
+                    <button class="btn btn-secondary" id="browseBtn" type="button">
+                        <span>📁 Browse & Add Folders...</span>
+                    </button>
+                    <div class="selected-folders-container" id="selectedFoldersContainer">
+                        <ul class="folder-list" id="selectedFoldersList"></ul>
+                    </div>
+                    <button class="btn btn-primary" id="activateBtn" disabled>
+                        <span>Start / Switch Index</span>
+                    </button>
+                </section>
+
+                <!-- Indexing Status -->
+                <section class="sidebar-section panel-glass" id="indexingStatusSection">
+                    <h2 class="section-title">Indexing Status</h2>
+                    <div class="indexing-progress-container">
+                        <div class="progress-info">
+                            <span class="progress-phase" id="indexingPhase">Idle</span>
+                            <span class="progress-percentage" id="indexingPercentage">0%</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" id="indexingBarFill" style="width: 0%"></div>
+                        </div>
+                        <p class="progress-message" id="indexingMessage">No directory selected</p>
+                    </div>
+
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <span class="metric-value" id="metricCompleted">0/0</span>
+                            <span class="metric-label">Files Processed</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-value" id="metricChunks">0</span>
+                            <span class="metric-label">Chunks Indexed</span>
+                        </div>
+                    </div>
+
+                    <!-- Toggleable details -->
+                    <div class="details-accordion">
+                        <button class="accordion-trigger" id="statsAccordionTrigger">
+                            <span>Latest Run Details</span>
+                            <span class="accordion-icon">▼</span>
+                        </button>
+                        <div class="accordion-content" id="statsAccordionContent">
+                            <pre id="statsJson">{}</pre>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Sidebar Actions (Fixed Bottom) -->
+            <div class="sidebar-footer">
+                <button class="btn btn-secondary" id="rescanBtn" disabled>Re-scan</button>
+                <button class="btn btn-outline" id="clearBtn">Clear Chat</button>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="app-main">
+            <!-- Sidebar toggle button for mobile/compact layouts -->
+            <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+                <span class="toggle-icon"></span>
+            </button>
+
+            <!-- Chat Workspace -->
+            <div class="chat-workspace">
+                <!-- Welcome / Landing State -->
+                <div class="welcome-container" id="welcomeContainer">
+                    <div class="welcome-header">
+                        <div class="welcome-shield">🛡️</div>
+                        <h2 class="gradient-text">Enterprise Document Intelligence</h2>
+                    </div>
+
+                    <div class="welcome-action-hint">
+                        <p>💡 Get started by adding folder paths using the browse button in the sidebar.</p>
+                    </div>
+                </div>
+
+                <!-- Active Chat Messages -->
+                <div class="messages-container" id="messagesContainer">
+                    <!-- Dynamic Messages Inserted Here -->
+                </div>
+
+                <!-- Chat Lock / System Block Overlay -->
+                <div class="chat-system-info" id="chatSystemInfo">
+                    <div class="info-icon">🛈</div>
+                    <span class="info-text" id="chatSystemInfoText">Choose a local document directory to begin.</span>
+                </div>
+
+                <!-- Input Zone -->
+                <div class="chat-input-zone">
+                    <div class="chat-input-wrapper">
+                        <textarea id="chatInput" placeholder="Ask a question about the indexed documents..." rows="1"
+                            disabled></textarea>
+                        <button id="sendBtn" class="send-btn" aria-label="Send message" disabled>
+                            <svg viewBox="0 0 24 24" width="20" height="20">
+                                <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="chat-disclaimer">
+                        <span>Local Inference Active. Data privacy is strictly enforced.</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+
+</html>

@@ -36,9 +36,9 @@ class RuntimeSnapshot:
 
 
 class DirectoryRuntime:
-    def __init__(self, config: AppConfig, directory: Path, index_directory: Path):
+    def __init__(self, config: AppConfig, directories: list[Path], index_directory: Path):
         self.config = config
-        self.directory = directory
+        self.directories = directories
         self.index_directory = index_directory
         self._state = RuntimeSnapshot(phase="starting", message="Starting local runtime")
         self._state_lock = threading.RLock()
@@ -79,7 +79,7 @@ class DirectoryRuntime:
         self._events.put((kind, path))
 
     def request_full_scan(self) -> None:
-        self.enqueue("full_scan", str(self.directory))
+        self.enqueue("full_scan", "")
 
     def answer(self, question: str, chat_history: list[BaseMessage]) -> AnswerResult:
         snapshot = self.snapshot()
@@ -145,7 +145,8 @@ class DirectoryRuntime:
     def _start_observer(self) -> None:
         handler = DocumentEventHandler(self.enqueue)
         self._observer = Observer()
-        self._observer.schedule(handler, str(self.directory), recursive=True)
+        for directory in self.directories:
+            self._observer.schedule(handler, str(directory), recursive=True)
         self._observer.start()
 
     def _event_loop(self) -> None:
@@ -202,14 +203,17 @@ class DirectoryRuntime:
     def _perform_full_scan(self) -> None:
         if self.catalog is None:
             raise RuntimeError("Catalog not initialized")
+        dir_names = ", ".join(d.name for d in self.directories)
         self._set_state(
             phase="scanning",
             progress=0.03,
-            message=f"Scanning {self.directory}",
+            message=f"Scanning {dir_names}",
             ready=False,
             error=None,
         )
-        discovered = discover_documents(self.directory)
+        discovered = []
+        for directory in self.directories:
+            discovered.extend(discover_documents(directory))
         current = set(discovered)
         stale = self.catalog.all_paths() - current
         self._perform_sync(discovered, stale)
@@ -294,14 +298,23 @@ class RuntimeController:
         self.active: DirectoryRuntime | None = None
         self.active_key: str | None = None
 
-    def activate(self, directory: str) -> str:
-        resolved = Path(directory).expanduser().resolve(strict=True)
-        if not resolved.is_dir():
-            raise NotADirectoryError(resolved)
+    def activate(self, directories: list[str] | str) -> str:
+        if isinstance(directories, str):
+            directories = [directories]
+
+        resolved_dirs = []
+        for directory in directories:
+            resolved = Path(directory).expanduser().resolve(strict=True)
+            if not resolved.is_dir():
+                raise NotADirectoryError(resolved)
+            resolved_dirs.append(resolved)
+
+        resolved_dirs = sorted(resolved_dirs, key=lambda p: str(p))
+
         identity = json.dumps(
             {
                 "schema_version": INDEX_SCHEMA_VERSION,
-                "directory": str(resolved),
+                "directories": [str(d) for d in resolved_dirs],
                 "embedding_model": self.config.embedding_model,
                 "chunk_size": self.config.chunk_size,
                 "chunk_overlap": self.config.chunk_overlap,
@@ -315,7 +328,7 @@ class RuntimeController:
             if self.active:
                 self.active.stop()
             index_directory = self.config.data_root / "indexes" / key
-            self.active = DirectoryRuntime(self.config, resolved, index_directory)
+            self.active = DirectoryRuntime(self.config, resolved_dirs, index_directory)
             self.active_key = key
             self.active.start()
         return key
