@@ -5,7 +5,7 @@ import os
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from urllib.error import URLError
-from urllib.request import urlopen
+import urllib.request as request
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,7 +50,10 @@ def check_local_model(model_reference: str, label: str) -> PreflightCheck:
 
 def check_ollama(base_url: str, model_name: str, timeout: float = 1.5) -> PreflightCheck:
     try:
-        with urlopen(f"{base_url}/api/tags", timeout=timeout) as response:  # noqa: S310
+        # Use an opener with an empty ProxyHandler to ensure loopback requests
+        # are not routed through an HTTP proxy defined in the environment.
+        opener = request.build_opener(request.ProxyHandler({}))
+        with opener.open(f"{base_url}/api/tags", timeout=timeout) as response:  # noqa: S310
             payload = json.load(response)
     except (OSError, URLError, ValueError, json.JSONDecodeError) as exc:
         return PreflightCheck(

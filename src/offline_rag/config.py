@@ -108,4 +108,8 @@ class AppConfig:
         os.environ["ANONYMIZED_TELEMETRY"] = "FALSE"
         os.environ["STREAMLIT_BROWSER_GATHER_USAGE_STATS"] = "false"
         os.environ["TOKENIZERS_PARALLELISM"] = "false"
+        # Ensure local loopback traffic bypasses any corporate HTTP proxy
+        no_proxy_list = "0.0.0.0,localhost,::1"
+        os.environ.setdefault("NO_PROXY", no_proxy_list)
+        os.environ.setdefault("no_proxy", os.environ["NO_PROXY"])  # some libraries read lowercase
         self.data_root.mkdir(parents=True, exist_ok=True)

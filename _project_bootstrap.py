@@ -40,9 +40,14 @@ def activate_project_environment(project_root: Path) -> BootstrapResult:
 
 def project_venv_python(project_root: Path) -> Path | None:
     for directory_name in ("venv", ".venv"):
-        candidate = project_root / directory_name / "bin" / "python"
-        if candidate.is_file():
-            return candidate
+        # Unix-style venv
+        posix_candidate = project_root / directory_name / "bin" / "python"
+        if posix_candidate.is_file():
+            return posix_candidate
+        # Windows-style venv
+        win_candidate = project_root / directory_name / "Scripts" / "python.exe"
+        if win_candidate.is_file():
+            return win_candidate
     return None
 
 

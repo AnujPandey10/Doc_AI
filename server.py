@@ -303,12 +303,12 @@ def main() -> None:
                 port = int(args[i + 1])
 
     # Start server
-    server_address = ("127.0.0.1", port)
+    server_address = ("0.0.0.0", port)
     httpd = HTTPServer(server_address, RAGHTTPRequestHandler)
 
     print("\n" + "=" * 70)
     print("🔒  AIR-GAPPED DOCUMENT ASSISTANT IS ONLINE")
-    print(f"👉  Open your web browser at:  http://127.0.0.1:{port}")
+    print(f"👉  Open your web browser at:  http://0.0.0.0:{port}")
     print("=" * 70 + "\n")
 
     try:
