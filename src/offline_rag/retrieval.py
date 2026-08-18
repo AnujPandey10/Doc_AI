@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import threading
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
@@ -27,6 +29,14 @@ REFUSAL = "I cannot answer this based on the provided documents."
 class AnswerResult:
     answer: str
     citations: list[dict[str, object]]
+
+
+@dataclass(frozen=True, slots=True)
+class StreamChunk:
+    """A single piece of a streaming response."""
+    token: str = ""
+    citations: list[dict[str, object]] | None = None
+    done: bool = False
 
 
 def tokenize(text: str) -> list[str]:
@@ -88,12 +98,13 @@ class RetrievalService:
             self._document_count = len(documents)
         return len(documents)
 
-    def answer(self, question: str, chat_history: list[BaseMessage]) -> AnswerResult:
+    def _build_rag_chain(self):
+        """Construct the full RAG chain (retrieval → reranking → LLM)."""
         with self._lock:
             bm25 = self._bm25
             document_count = self._document_count
         if document_count == 0 or bm25 is None:
-            return AnswerResult(answer=REFUSAL, citations=[])
+            return None, 0
 
         dense = self.vector_index.store.as_retriever(
             search_type="similarity",
@@ -143,6 +154,19 @@ class RetrievalService:
             history_aware_retriever,
             question_answer_chain,
         )
+        return rag_chain, document_count
+
+    def answer(self, question: str, chat_history: list[BaseMessage]) -> AnswerResult:
+        with self._lock:
+            bm25 = self._bm25
+            document_count = self._document_count
+        if document_count == 0 or bm25 is None:
+            return AnswerResult(answer=REFUSAL, citations=[])
+
+        rag_chain, _ = self._build_rag_chain()
+        if rag_chain is None:
+            return AnswerResult(answer=REFUSAL, citations=[])
+
         result = rag_chain.invoke(
             {
                 "input": question,
@@ -152,6 +176,54 @@ class RetrievalService:
         context = list(result.get("context") or [])
         answer = str(result.get("answer") or REFUSAL).strip()
         return AnswerResult(answer=answer, citations=self._citations(context))
+
+    async def answer_streaming(
+        self, question: str, chat_history: list[BaseMessage]
+    ) -> AsyncIterator[StreamChunk]:
+        """Yield tokens one-by-one as the LLM generates them.
+
+        Retrieval and reranking run synchronously in a thread, then the LLM
+        generation step streams tokens asynchronously.
+        """
+        with self._lock:
+            bm25 = self._bm25
+            document_count = self._document_count
+        if document_count == 0 or bm25 is None:
+            yield StreamChunk(token=REFUSAL)
+            yield StreamChunk(done=True, citations=[])
+            return
+
+        # Build chain (this includes the sync retrieval/reranking steps)
+        rag_chain, _ = self._build_rag_chain()
+        if rag_chain is None:
+            yield StreamChunk(token=REFUSAL)
+            yield StreamChunk(done=True, citations=[])
+            return
+
+        collected_context: list[Document] = []
+
+        try:
+            async for chunk in rag_chain.astream(
+                {"input": question, "chat_history": chat_history}
+            ):
+                # Collect context documents when they appear
+                if "context" in chunk and chunk["context"]:
+                    collected_context = list(chunk["context"])
+
+                # Stream answer tokens
+                if "answer" in chunk:
+                    token = str(chunk["answer"])
+                    if token:
+                        yield StreamChunk(token=token)
+        except Exception as exc:
+            error_msg = (
+                "The local RAG pipeline could not complete the request. "
+                f"Details: {type(exc).__name__}: {exc}"
+            )
+            yield StreamChunk(token=error_msg)
+
+        citations = self._citations(collected_context) if collected_context else []
+        yield StreamChunk(done=True, citations=citations)
 
     @staticmethod
     def _citations(documents: list[Document]) -> list[dict[str, object]]:
@@ -179,4 +251,5 @@ class RetrievalService:
             {"source_file_name": file_name, "page_number": page_number}
             for file_name, page_number in sorted(citations, key=lambda item: (item[0], item[1]))
         ]
+
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -33,10 +34,10 @@ def main() -> None:
     )
     command = [
         str(venv_python),
-        str(project_root / "server.py"),
+        str(project_root / "server_fastapi.py"),
         *sys.argv[1:],
     ]
-    os.execve(str(venv_python), command, environment)
+    sys.exit(subprocess.run(command, env=environment).returncode)
 
 
 if __name__ == "__main__":

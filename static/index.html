@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Document Assistant</title>
+    <meta name="description" content="Air-gapped enterprise document intelligence with local RAG.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -22,11 +23,40 @@
                 <div class="brand-logo">
                     <h1>AI Document Assistant</h1>
                 </div>
+                <!-- User badge -->
+                <div class="user-badge" id="userBadge">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div class="user-info">
+                        <span class="user-name" id="userName">admin</span>
+                        <span class="user-role" id="userRole">admin</span>
+                    </div>
+                    <button class="user-menu-btn" id="userMenuBtn" title="Account menu">
+                        <svg viewBox="0 0 24 24" width="16" height="16">
+                            <path fill="currentColor" d="M7 10l5 5 5-5z"/>
+                        </svg>
+                    </button>
+                </div>
+                <!-- User dropdown -->
+                <div class="user-dropdown" id="userDropdown" style="display:none;">
+                    <button class="dropdown-item" id="changePasswordBtn">
+                        <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                        Change Password
+                    </button>
+                    <button class="dropdown-item admin-only" id="manageUsersBtn">
+                        <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                        Manage Users
+                    </button>
+                    <div class="dropdown-divider"></div>
+                    <button class="dropdown-item logout-item" id="logoutBtn">
+                        <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+                        Sign Out
+                    </button>
+                </div>
             </div>
 
             <div class="sidebar-scroll-content">
-                <!-- Document Directory Setup -->
-                <section class="sidebar-section panel-glass">
+                <!-- Document Directory Setup (Admin Only) -->
+                <section class="sidebar-section panel-glass admin-only" id="docSourcesSection">
                     <h2 class="section-title">Document Sources</h2>
                     <button class="btn btn-secondary" id="browseBtn" type="button">
                         <span>📁 Browse & Add Folders...</span>
@@ -79,7 +109,7 @@
 
             <!-- Sidebar Actions (Fixed Bottom) -->
             <div class="sidebar-footer">
-                <button class="btn btn-secondary" id="rescanBtn" disabled>Re-scan</button>
+                <button class="btn btn-secondary admin-only" id="rescanBtn" disabled>Re-scan</button>
                 <button class="btn btn-outline" id="clearBtn">Clear Chat</button>
             </div>
         </aside>
@@ -91,48 +121,153 @@
                 <span class="toggle-icon"></span>
             </button>
 
-            <!-- Chat Workspace -->
-            <div class="chat-workspace">
-                <!-- Welcome / Landing State -->
-                <div class="welcome-container" id="welcomeContainer">
-                    <div class="welcome-header">
-                        <div class="welcome-shield">🛡️</div>
-                        <h2 class="gradient-text">Enterprise Document Intelligence</h2>
+            <!-- Split Panel Container -->
+            <div class="split-panel-container" id="splitPanelContainer">
+                <!-- Chat Workspace (Left Panel) -->
+                <div class="chat-workspace" id="chatWorkspace">
+                    <!-- Welcome / Landing State -->
+                    <div class="welcome-container" id="welcomeContainer">
+                        <div class="welcome-header">
+                            <div class="welcome-shield">🛡️</div>
+                            <h2 class="gradient-text">Enterprise Document Intelligence</h2>
+                        </div>
+
+                        <div class="welcome-action-hint">
+                            <p>Get started by adding folder paths using the browse button in the sidebar.</p>
+                        </div>
                     </div>
 
-                    <div class="welcome-action-hint">
-                        <p>Get started by adding folder paths using the browse button in the sidebar.</p>
+                    <!-- Active Chat Messages -->
+                    <div class="messages-container" id="messagesContainer">
+                        <!-- Dynamic Messages Inserted Here -->
+                    </div>
+
+                    <!-- Chat Lock / System Block Overlay -->
+                    <div class="chat-system-info" id="chatSystemInfo">
+                        <div class="info-icon">🛈</div>
+                        <span class="info-text" id="chatSystemInfoText">Choose a local document directory to begin.</span>
+                    </div>
+
+                    <!-- Input Zone -->
+                    <div class="chat-input-zone">
+                        <div class="chat-input-wrapper">
+                            <textarea id="chatInput" placeholder="Ask a question about the indexed documents..." rows="1"
+                                disabled></textarea>
+                            <button id="sendBtn" class="send-btn" aria-label="Send message" disabled>
+                                <svg viewBox="0 0 24 24" width="20" height="20">
+                                    <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="chat-disclaimer">
+                            <span>Local Inference Active. Data privacy is strictly enforced.</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Active Chat Messages -->
-                <div class="messages-container" id="messagesContainer">
-                    <!-- Dynamic Messages Inserted Here -->
-                </div>
-
-                <!-- Chat Lock / System Block Overlay -->
-                <div class="chat-system-info" id="chatSystemInfo">
-                    <div class="info-icon">🛈</div>
-                    <span class="info-text" id="chatSystemInfoText">Choose a local document directory to begin.</span>
-                </div>
-
-                <!-- Input Zone -->
-                <div class="chat-input-zone">
-                    <div class="chat-input-wrapper">
-                        <textarea id="chatInput" placeholder="Ask a question about the indexed documents..." rows="1"
-                            disabled></textarea>
-                        <button id="sendBtn" class="send-btn" aria-label="Send message" disabled>
+                <!-- PDF Viewer Panel (Right Panel — hidden by default) -->
+                <div class="pdf-viewer-panel" id="pdfViewerPanel" style="display: none;">
+                    <div class="pdf-viewer-header">
+                        <div class="pdf-viewer-title">
+                            <svg viewBox="0 0 24 24" width="18" height="18">
+                                <path fill="currentColor" d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM14 9.5h1v-1h-1v1z"/>
+                            </svg>
+                            <span id="pdfViewerFileName">Document.pdf</span>
+                            <span class="pdf-page-badge" id="pdfPageBadge">Page 1</span>
+                        </div>
+                        <button class="pdf-close-btn" id="pdfCloseBtn" title="Close viewer">
                             <svg viewBox="0 0 24 24" width="20" height="20">
-                                <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+                                <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
                             </svg>
                         </button>
                     </div>
-                    <div class="chat-disclaimer">
-                        <span>Local Inference Active. Data privacy is strictly enforced.</span>
+                    <div class="pdf-viewer-body">
+                        <iframe id="pdfViewerFrame" src="" title="PDF Viewer"></iframe>
                     </div>
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- ── Admin Modal: User Management ────────────────────────────────── -->
+    <div class="modal-overlay" id="adminModalOverlay" style="display: none;">
+        <div class="modal-card" id="adminModal">
+            <div class="modal-header">
+                <h2>User Management</h2>
+                <button class="modal-close" id="adminModalClose">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                        <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Create User Form -->
+                <div class="create-user-section">
+                    <h3>Create New User</h3>
+                    <form id="createUserForm" class="create-user-form">
+                        <div class="form-row">
+                            <input type="text" id="newUsername" placeholder="Username" required>
+                            <input type="password" id="newPassword" placeholder="Password" required>
+                            <select id="newRole">
+                                <option value="viewer">Viewer</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                            <button type="submit" class="btn btn-primary btn-sm">Add User</button>
+                        </div>
+                        <div class="form-error" id="createUserError" style="display:none;"></div>
+                    </form>
+                </div>
+
+                <!-- Users Table -->
+                <div class="users-table-container">
+                    <table class="users-table" id="usersTable">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Role</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <!-- Dynamic rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Change Password Modal ──────────────────────────────────────── -->
+    <div class="modal-overlay" id="passwordModalOverlay" style="display: none;">
+        <div class="modal-card modal-sm">
+            <div class="modal-header">
+                <h2>Change Password</h2>
+                <button class="modal-close" id="passwordModalClose">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                        <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="changePasswordForm">
+                    <div class="form-group-modal">
+                        <label>Current Password</label>
+                        <input type="password" id="currentPassword" required>
+                    </div>
+                    <div class="form-group-modal">
+                        <label>New Password</label>
+                        <input type="password" id="newPasswordChange" required>
+                    </div>
+                    <div class="form-group-modal">
+                        <label>Confirm New Password</label>
+                        <input type="password" id="confirmPassword" required>
+                    </div>
+                    <div class="form-error" id="changePasswordError" style="display:none;"></div>
+                    <button type="submit" class="btn btn-primary" style="width:100%;margin-top:12px;">Update Password</button>
+                </form>
+            </div>
+        </div>
     </div>
 </body>
 

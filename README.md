@@ -3,7 +3,12 @@
 A local-only Retrieval-Augmented Generation application for large PDF and DOCX
 collections. It uses LangChain, Ollama, Hugging Face models loaded from local
 storage, persistent Chroma HNSW search, BM25 sparse retrieval, cross-encoder
-reranking, SQLite content hashing, watchdog monitoring, and Streamlit.
+reranking, SQLite content hashing, and watchdog monitoring.
+
+The application features a modern web frontend served by FastAPI with:
+- **JWT Authentication & RBAC** — Local SQLite user store, bcrypt passwords, admin/viewer roles
+- **Real-Time Streaming** — Token-by-token responses via WebSocket
+- **Interactive PDF Viewer** — Clickable citations open a split-panel PDF viewer at the cited page
 
 ## What it does
 
@@ -73,18 +78,28 @@ Ensure Ollama is running locally and already contains the model. Do not use
 python run_app.py
 ```
 
-The launcher always uses `venv/bin/python`, even if Anaconda base is also active or
-the shell has cached the wrong `streamlit` executable. Additional Streamlit flags
-can be appended, for example `python run_app.py --server.port 8502`.
+The launcher always uses `venv/bin/python` and starts the FastAPI server on
+port 8501. Additional flags can be appended:
+
+```bash
+python run_app.py --port 8502
+```
 
 Direct launch is also supported:
 
 ```bash
-venv/bin/python -m streamlit run app.py
+venv/bin/python server_fastapi.py --port 8501
 ```
 
-Avoid bare `streamlit run app.py` in shells showing both `(venv)` and `(base)`,
-because the command can still resolve to `/opt/anaconda3/bin/streamlit`.
+### Default Credentials
+
+On first launch, a default admin account is created:
+- **Username:** `admin`
+- **Password:** `changeme`
+
+Change this password immediately via the user menu in the sidebar.
+The legacy Streamlit app (`app.py`) and old HTTP server (`server.py`) are
+preserved in the repository but are no longer the default entry points.
 
 Enter an absolute directory path in the sidebar and choose **Start / switch index**.
 The first run loads local models, scans files, parses/chunks unique content, embeds
@@ -106,6 +121,10 @@ in batches, builds BM25, and loads the reranker. Later runs process only changes
 | `RAG_HISTORY_TURNS` | `6` | Recent user/assistant turns sent to Llama |
 | `RAG_DENSE_WEIGHT` | `0.65` | Ensemble dense weight |
 | `RAG_SPARSE_WEIGHT` | `0.35` | Ensemble sparse weight |
+| `RAG_JWT_SECRET` | Auto-generated | JWT signing key (persisted in SQLite) |
+| `RAG_JWT_EXPIRY_HOURS` | `24` | Token expiry in hours |
+| `RAG_ADMIN_USERNAME` | `admin` | Default admin username (first run only) |
+| `RAG_ADMIN_PASSWORD` | `changeme` | Default admin password (first run only) |
 
 ## Validation
 
